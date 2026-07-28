@@ -7,6 +7,9 @@
 [![Model](https://img.shields.io/badge/model-d%3D1%20glitch--free-orange.svg)](#the-model-read-this-first)
 [![CI](https://img.shields.io/badge/CI-test%20matrix-brightgreen.svg)](.github/workflows/ci.yml)
 
+> **▶ [Try it in your browser](https://huggingface.co/spaces/nickh007/hw-verify)** — paste Verilog, get a formal constant-time verdict with the leaking signals named. No install, nothing uploaded.
+
+
 ## Why this exists
 
 Most masking verification reasons about **dependence**: a probe is secure if it touches at
@@ -180,17 +183,18 @@ and are not in this package. Everything here runs on designs you already control
 <!-- portfolio:start -->
 ## Part of the hw-verify toolkit
 
-Six open tools and a dataset for proving security properties of hardware and bounds checks. They share one boundary: **everything open analyses a design you disclose in full.**
+Five open tools, a dataset, and a browser demo for proving security properties of hardware and bounds checks. They share one boundary: **everything open analyses a design you disclose in full.**
 
 | Project | What it does |
 |---|---|
+| **▶ [Live demo](https://huggingface.co/spaces/nickh007/hw-verify)** | Try the constant-time checker in your browser — runs the real analyzer via Pyodide |
 | [`ctbench`](https://github.com/nickharris808/ctbench) | Matched-pair constant-time RTL benchmark + leaderboard |
 | [`patchproof`](https://github.com/nickharris808/patchproof) | Prove a bounds-check fix eliminates *every* violating input |
 | **`ct-mask`** (you are here) | First-order masking verification by two certificates |
-| [`hw-verify-mcp`](https://github.com/nickharris808/hw-verify-mcp) | MCP server — all three checkers, for AI agents |
+| [`hw-verify-mcp`](https://github.com/nickharris808/hw-verify-mcp) | MCP server — all three checkers, callable by AI agents |
 | [`ct-audit-action`](https://github.com/nickharris808/ct-audit-action) | GitHub Action — fail a PR on a leaky completion signal |
-| [`hw-verify demo`](https://github.com/nickharris808/hw-verify-space) | Browser demo of all three checkers |
 | [`hw-verify` dataset](https://huggingface.co/datasets/nickh007/hw-verify) | 49 records, 3 splits, byte-reproducible from these tools |
+| [`hw-verify-static`](https://github.com/nickharris808/hw-verify-static) · [`hw-verify-space`](https://github.com/nickharris808/hw-verify-space) | Source for the live demo (Pyodide) and a fuller Gradio build |
 
 **The commercial boundary.** Proving a property to a third party who never receives the design — a verdict bound to a commitment of a design that stays hidden — is a different problem and a commercial one. It is not in any of these packages.
 <!-- portfolio:end -->
