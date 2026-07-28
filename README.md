@@ -177,6 +177,24 @@ third party *without disclosing the gadget*, and carrying a hardware timing resu
 software analysis through a machine-checked leakage contract, are commercial capabilities
 and are not in this package. Everything here runs on designs you already control.
 
+<!-- portfolio:start -->
+## Part of the hw-verify toolkit
+
+Six open tools and a dataset for proving security properties of hardware and bounds checks. They share one boundary: **everything open analyses a design you disclose in full.**
+
+| Project | What it does |
+|---|---|
+| [`ctbench`](https://github.com/nickharris808/ctbench) | Matched-pair constant-time RTL benchmark + leaderboard |
+| [`patchproof`](https://github.com/nickharris808/patchproof) | Prove a bounds-check fix eliminates *every* violating input |
+| **`ct-mask`** (you are here) | First-order masking verification by two certificates |
+| [`hw-verify-mcp`](https://github.com/nickharris808/hw-verify-mcp) | MCP server — all three checkers, for AI agents |
+| [`ct-audit-action`](https://github.com/nickharris808/ct-audit-action) | GitHub Action — fail a PR on a leaky completion signal |
+| [`hw-verify demo`](https://github.com/nickharris808/hw-verify-space) | Browser demo of all three checkers |
+| [`hw-verify` dataset](https://huggingface.co/datasets/nickh007/hw-verify) | 49 records, 3 splits, byte-reproducible from these tools |
+
+**The commercial boundary.** Proving a property to a third party who never receives the design — a verdict bound to a commitment of a design that stays hidden — is a different problem and a commercial one. It is not in any of these packages.
+<!-- portfolio:end -->
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
