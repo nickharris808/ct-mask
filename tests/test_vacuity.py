@@ -120,3 +120,84 @@ def test_first_order_verdict_never_claims_higher_order_security():
     ml = d["modelled_leakage"]
     assert ml["mean_invariant_across_secret_classes"] is True
     assert ml["distribution_invariant_across_secret_classes"] is False
+
+
+# ---------------------------------------------------------------------------
+# The enumeration wall.
+#
+# Probe certification is cheap and roughly linear; the modelled-leakage
+# enumeration visits every input assignment and so costs 2^inputs. Measured:
+# 19 inputs 4.3 s, 21 inputs 18.8 s, doubling per input — 24 inputs is minutes.
+# The old guard was `len(probes) <= 32`, which measures the wrong quantity
+# entirely, so a wide gadget looked like a hang with no explanation.
+# ---------------------------------------------------------------------------
+
+def _wide(k: int) -> Netlist:
+    """A gadget with 2k+1 inputs and k gates — wide but shallow."""
+    n = Netlist(f"wide{k}")
+    for i in range(k):
+        n.add_input(f"a{i}0", "share", of_secret=f"a{i}")
+        n.add_input(f"a{i}1", "share", of_secret=f"a{i}")
+    n.add_input("z", "mask")
+    prev = "z"
+    for i in range(k):
+        n.add_gate(f"t{i}", "xor", f"a{i}0", prev)
+        prev = f"t{i}"
+    return n
+
+
+def test_a_wide_gadget_returns_promptly_instead_of_enumerating_forever():
+    import time
+
+    start = time.perf_counter()
+    r = analyse(_wide(12))            # 25 inputs -> 2^25 evaluations if unguarded
+    elapsed = time.perf_counter() - start
+    assert elapsed < 5, f"took {elapsed:.1f}s; the enumeration guard did not fire"
+    assert r.leakage_skipped, "the skip must be recorded, not silent"
+
+
+def test_the_skip_is_reported_and_says_what_was_lost_and_how_to_override():
+    r = analyse(_wide(12))
+    msg = r.leakage_skipped
+    assert "2^" in msg
+    assert "Probe certification above is unaffected" in msg
+    assert "max_enumeration_inputs" in msg
+    assert r.to_dict()["modelled_leakage"]["skipped"] == msg
+
+
+def test_skipping_the_enumeration_does_not_fake_the_moments():
+    """A skipped measurement must read as absent, never as a passing result."""
+    r = analyse(_wide(12))
+    assert r.mean_invariant is None
+    assert r.distribution_invariant is None
+    d = r.to_dict()["modelled_leakage"]
+    assert d["mean_invariant_across_secret_classes"] is None
+    assert d["distribution_invariant_across_secret_classes"] is None
+
+
+def test_the_probe_verdict_is_still_complete_when_enumeration_is_skipped():
+    """The security verdict comes from probe certification, not the moments."""
+    r = analyse(_wide(12))
+    assert len(r.probes) == 12
+    assert all(p.certificate for p in r.probes)
+    assert r.to_dict()["verdict"] in ("SECURE", "LEAKY")
+
+
+def test_a_narrow_gadget_still_enumerates():
+    """The guard must not switch off the measurement for ordinary gadgets."""
+    r = analyse(_wide(4))             # 9 inputs
+    assert r.leakage_skipped is None
+    assert r.mean_invariant is not None
+    assert r.secret_classes > 0
+
+
+def test_every_bundled_gadget_is_under_the_cap():
+    """If the shipped corpus tripped the guard, the README examples would change."""
+    for name in GADGETS:
+        assert analyse(build(name)).leakage_skipped is None, name
+
+
+def test_the_cap_can_be_raised_explicitly():
+    r = analyse(_wide(6), max_enumeration_inputs=13)   # 13 inputs, allowed
+    assert r.leakage_skipped is None
+    assert r.mean_invariant is not None

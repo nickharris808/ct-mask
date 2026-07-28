@@ -65,6 +65,9 @@ class Report:
     mean_invariant: bool | None = None
     distribution_invariant: bool | None = None
     secret_classes: int = 0
+    # Set when the modelled-leakage enumeration was too wide to run; the probe
+    # certification is still complete, so this is a missing detail, not a failure.
+    leakage_skipped: str | None = None
 
     @property
     def secure(self) -> bool:
@@ -104,6 +107,7 @@ class Report:
                     "An adversary who observes more than a mean is not covered by a "
                     "first-order SECURE verdict."
                 ),
+                "skipped": self.leakage_skipped,
             },
         }
 
@@ -229,7 +233,8 @@ class VacuousNetlist(ValueError):
     """
 
 
-def analyse(n: Netlist, measure_leakage: bool = True) -> Report:
+def analyse(n: Netlist, measure_leakage: bool = True,
+            max_enumeration_inputs: int = 20) -> Report:
     """Full first-order analysis of a gadget.
 
     Raises `VacuousNetlist` on input that cannot carry a verdict, rather than
@@ -249,7 +254,23 @@ def analyse(n: Netlist, measure_leakage: bool = True) -> Report:
     r = Report(gadget=n.name)
     r.probes = [analyse_probe(n, p) for p in n.probes()]
 
-    if measure_leakage and len(n.probes()) <= 32:
+    if measure_leakage:
+        # The old guard here was `len(n.probes()) <= 32`, which measures the wrong
+        # thing: enumeration cost is driven by the *input* count, not the probe
+        # count, because every input assignment is visited.  Measured on this
+        # machine: 19 inputs 4.3 s, 21 inputs 18.8 s, and it doubles per input --
+        # so 24 inputs is minutes and 30 is hours.  A gadget wide enough to trip
+        # that used to look like a hang with no explanation.
+        width = len(n.input_names)
+        if width > max_enumeration_inputs:
+            r.leakage_skipped = (
+                f"modelled-leakage enumeration skipped: {width} inputs would need "
+                f"2^{width} evaluations (the limit is 2^{max_enumeration_inputs}). "
+                f"Probe certification above is unaffected and is the security verdict; "
+                f"this only omits the mean/distribution moments. Raise the cap with "
+                f"analyse(n, max_enumeration_inputs={width}) if you want to wait."
+            )
+            return r
         classes, dists = _leakage_distributions(n)
         r.secret_classes = classes
         means = [round(_mean(c), 9) for c in dists.values()]

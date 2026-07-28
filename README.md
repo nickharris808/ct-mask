@@ -180,6 +180,13 @@ third party *without disclosing the gadget*, and carrying a hardware timing resu
 software analysis through a machine-checked leakage contract, are commercial capabilities
 and are not in this package. Everything here runs on designs you already control.
 
+## Documentation
+
+| | |
+|---|---|
+| [SCOPE.md](SCOPE.md) | the model, the two certificates, the first-moment limit, the enumeration wall |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | every refusal and surprising verdict, explained |
+
 <!-- portfolio:start -->
 ## Part of the hw-verify toolkit
 
