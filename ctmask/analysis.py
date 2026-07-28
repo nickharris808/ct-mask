@@ -68,7 +68,13 @@ class Report:
 
     @property
     def secure(self) -> bool:
-        return all(p.secure for p in self.probes)
+        """SECURE requires a discharged proof obligation, not merely no failures.
+
+        `all()` over an empty probe list is True, which would report a netlist with
+        nothing in it as first-order secure.  Nothing was certified, so there is
+        nothing to report; a verdict has to be earned by at least one probe.
+        """
+        return bool(self.probes) and all(p.secure for p in self.probes)
 
     @property
     def leaky_probes(self) -> list[str]:
@@ -214,8 +220,32 @@ def _mean(c: Counter) -> float:
     return sum(k * v for k, v in c.items()) / total if total else 0.0
 
 
+class VacuousNetlist(ValueError):
+    """The netlist cannot support a security claim, so none is made.
+
+    A gadget with no probes, or with no secret to protect, satisfies every
+    first-order condition trivially.  Reporting SECURE for it would be true and
+    useless, and would read to anyone downstream as a certified gadget.
+    """
+
+
 def analyse(n: Netlist, measure_leakage: bool = True) -> Report:
-    """Full first-order analysis of a gadget."""
+    """Full first-order analysis of a gadget.
+
+    Raises `VacuousNetlist` on input that cannot carry a verdict, rather than
+    returning a trivially-satisfied SECURE.
+    """
+    if not n.probes():
+        raise VacuousNetlist(
+            f"netlist {n.name!r} has no probes (no gates to observe), so there is "
+            f"nothing to certify. Add gates with n.add_gate(...) before analysing."
+        )
+    if not n.secrets():
+        raise VacuousNetlist(
+            f"netlist {n.name!r} declares no secret, so first-order security holds "
+            f"trivially and the verdict would be meaningless. Declare inputs with "
+            f"kind 'share' (naming of_secret=...) or 'secret'."
+        )
     r = Report(gadget=n.name)
     r.probes = [analyse_probe(n, p) for p in n.probes()]
 
