@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: "ct-mask: first-order masking verification by two certificates"
+message: "If you use this in academic work, please cite it."
+type: software
+authors:
+  - alias: nickharris808
+    website: "https://github.com/nickharris808"
+repository-code: "https://github.com/nickharris808/ct-mask"
+url: "https://huggingface.co/spaces/nickh007/hw-verify"
+abstract: >-
+  Certifies each probe of a masked hardware gadget as independent of every secret, under glitch-free gate-value probing at first order with two shares. Adds a uniformity certificate alongside the usual dependence argument, which certifies gadgets a dependence-only analysis reports as leaky -- notably the output shares of a domain-oriented masked AND. Records mean-invariance and whole-distribution invariance separately, so a first-order verdict states its own scope.
+keywords:
+  - masking
+  - side-channel
+  - probing security
+  - hardware security
+  - formal verification
+license: Apache-2.0
+version: "0.1.0"
+date-released: "2026-07-28"
