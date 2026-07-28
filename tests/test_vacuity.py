@@ -201,3 +201,71 @@ def test_the_cap_can_be_raised_explicitly():
     r = analyse(_wide(6), max_enumeration_inputs=13)   # 13 inputs, allowed
     assert r.leakage_skipped is None
     assert r.mean_invariant is not None
+
+
+# ---------------------------------------------------------------------------
+# The fan-in pre-filter must be a pure optimisation.
+#
+# `depends_on` skips the solver when the input is not in the probe's fan-in cone.
+# That is sound because a value can only reach a wire along a path of gates, and the
+# fan-in is by construction every input with such a path — so absence from it implies
+# no dependence. The converse is NOT assumed: presence in the fan-in still asks z3.
+#
+# The argument is easy to invalidate by changing how gates record their inputs, so
+# these tests check the property directly against an unfiltered oracle.
+# ---------------------------------------------------------------------------
+
+def _depends_unfiltered(n, probe, inp):
+    """`depends_on` with the pre-filter bypassed: always ask the solver."""
+    import z3
+
+    from ctmask.analysis import _two_copies
+    va, vb = _two_copies(n, inp, complement=False)
+    s = z3.Solver()
+    s.add(va[probe] != vb[probe])
+    return s.check() == z3.sat
+
+
+@pytest.mark.parametrize("name", sorted(GADGETS))
+def test_prefilter_agrees_with_the_solver_on_every_probe_and_input(name):
+    from ctmask.analysis import depends_on
+
+    n = build(name)
+    for probe in n.probes():
+        for inp in n.input_names:
+            fast = depends_on(n, probe, inp)
+            slow = _depends_unfiltered(n, probe, inp)
+            assert fast == slow, (
+                f"{name}: depends_on({probe}, {inp}) = {fast} with the fan-in "
+                f"pre-filter but {slow} without it — the optimisation changed an answer"
+            )
+
+
+@pytest.mark.parametrize("name", sorted(GADGETS))
+def test_verdicts_are_unchanged_by_the_prefilter(name):
+    """End-to-end: the corpus verdicts must be identical."""
+    _builder, expected = GADGETS[name]
+    assert analyse(build(name)).to_dict()["verdict"] == expected
+
+
+def test_fan_in_is_a_subset_of_the_declared_inputs():
+    from ctmask.analysis import fan_in
+
+    n = build("dom_and")
+    for probe in n.probes():
+        assert fan_in(n, probe) <= set(n.input_names)
+
+
+def test_an_input_outside_the_fan_in_never_reaches_the_probe():
+    """The theorem the optimisation rests on, stated as a test."""
+    from ctmask.analysis import fan_in
+
+    for name in GADGETS:
+        n = build(name)
+        for probe in n.probes():
+            outside = set(n.input_names) - fan_in(n, probe)
+            for inp in outside:
+                assert not _depends_unfiltered(n, probe, inp), (
+                    f"{name}: {inp} is outside {probe}'s fan-in yet the solver says "
+                    f"it affects the probe — the fan-in walk is missing an edge"
+                )
