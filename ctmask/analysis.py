@@ -166,7 +166,19 @@ def depends_on(n: Netlist, probe: str, inp: str, _fan_in: frozenset[str] | None 
 
     It matters because the analysis calls this once per (probe x share), which grows
     quadratically with gadget size, while most probes touch a handful of the inputs.
-    Measured on a 24-secret gadget: 1248 solver calls -> 324, wall clock 1.84s -> 0.55s.
+
+    Re-derived 2026-07-30 on a NAMED, committed fixture -- `tests/test_vacuity.py::_wide(12)`
+    (25 inputs, 12 gates): **323 solver checks -> 100, 69.0% fewer**, and ~477 ms -> ~172 ms
+    (median of paired ratios over 3 runs x 7 interleaved reps, ~2.78x). On the five SHIPPED
+    gadgets the saving is smaller -- 0% to 50% -- because they are small; the large reduction
+    needs a large gadget. Regenerate: `python3 benchmarks/bench_oss_ctmask_calls.py`.
+
+    This docstring previously read "Measured on a 24-secret gadget: 1248 solver calls -> 324,
+    wall clock 1.84s -> 0.55s." That is RETRACTED, for two reasons worth keeping visible:
+    no 24-secret gadget is committed anywhere in this package, so the figure was not
+    reproducible by anyone; and README.md published the same deterministic count as
+    1271 -> 368, so the repository shipped two different values for a quantity that can only
+    have one.
     """
     reachable = _fan_in if _fan_in is not None else fan_in(n, probe)
     if inp not in reachable:
